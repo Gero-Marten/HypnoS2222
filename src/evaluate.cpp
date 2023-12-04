@@ -209,7 +209,8 @@ Value Eval::evaluate(const Position& pos) {
     // Add an advantage based on ratingAdv
     v += pos.this_thread()->advantage[stm];
 
-    // Damp down the evaluation linearly when shuffling    v = v * (200 - shuffling) / 214;
+    // Damp down the evaluation linearly when shuffling
+    v = v * (200 - shuffling) / 214;
 
     // Guarantee evaluation does not hit the tablebase range
     v = std::clamp(v, VALUE_TB_LOSS_IN_MAX_PLY + 1, VALUE_TB_WIN_IN_MAX_PLY - 1);
