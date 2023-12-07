@@ -81,7 +81,7 @@ void NNUE::init() {
     for (bool small : {false, true})
     {
         std::string eval_file = std::string(Options[EvFiles[small]]);
-        if (eval_file.empty() || eval_file == "<internal>")
+        if (eval_file.empty())
             eval_file = EvFileNames[small];
 
 #if defined(DEFAULT_NNUE_DIRECTORY)
@@ -135,14 +135,14 @@ void NNUE::verify() {
     for (bool small : {false, true})
     {
         std::string eval_file = std::string(Options[EvFiles[small]]);
-        if (eval_file.empty() || eval_file == "<internal>")
+        if (eval_file.empty())
             eval_file = EvFileNames[small];
 
         if (currentEvalFileName[small] != eval_file)
         {
             std::string msg1 =
               "Network evaluation parameters compatible with the engine must be available.";
-            std::string msg2 = "The network file " + std::string(Options["EvalFile"]) + " was not loaded successfully.";
+            std::string msg2 = "The network file " + eval_file + " was not loaded successfully.";
             std::string msg3 = "The UCI option EvalFile might need to specify the full path, "
                                "including the directory name, to the network file.";
             std::string msg4 = "The default net can be downloaded from: "
@@ -159,7 +159,7 @@ void NNUE::verify() {
             exit(EXIT_FAILURE);
         }
 
-        sync_cout << "info string NNUE evaluation using " << std::string(Options["EvalFile"]) << sync_endl;
+        sync_cout << "info string NNUE evaluation using " << eval_file << sync_endl;
     }
 }
 }
@@ -173,25 +173,19 @@ Value Eval::evaluate(const Position& pos) {
     Value v;
     Color stm        = pos.side_to_move();
     int   shuffling  = pos.rule50_count();
-    int   simpleEval = pos.simple_eval() + (int(pos.key() & 7) - 3);
+    int   simpleEval = pos.simple_eval();
 
-    int lazyThreshold = RookValue + KnightValue + 16 * shuffling * shuffling
-                                  + abs(pos.this_thread()->bestValue)
-                                  + abs(pos.this_thread()->rootSimpleEval);
+    int lazyThresholdSimpleEval = 2300;
+    int lazyThresholdSmallNet = 1500;
 
-    bool lazy = abs(simpleEval) > lazyThreshold * 105 / 100;
-
+    bool lazy = abs(simpleEval) > lazyThresholdSimpleEval;
     if (lazy)
         v = Value(simpleEval);
     else
     {
-        int accBias = pos.state()->accumulatorBig.computed[0]
-                    + pos.state()->accumulatorBig.computed[1]
-                    - pos.state()->accumulatorSmall.computed[0]
-                    - pos.state()->accumulatorSmall.computed[1];
+        bool smallNet = abs(simpleEval) > lazyThresholdSmallNet;
 
         int  nnueComplexity;
-        bool smallNet = abs(simpleEval) > lazyThreshold * (90 + accBias) / 100;
 
         Value nnue = smallNet ? NNUE::evaluate<true>(pos, true, &nnueComplexity)
                               : NNUE::evaluate<false>(pos, true, &nnueComplexity);

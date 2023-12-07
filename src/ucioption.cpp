@@ -102,8 +102,8 @@ void init(OptionsMap& o) {
     o["Experience Book Eval Importance"]     << Option(5, 0, 10);
     o["Experience Book Min Depth"]           << Option(27, EXP_MIN_DEPTH, 64);
     o["Experience Book Max Moves"]           << Option(100, 1, 100);
-    o["EvalFile"]                            << Option("<internal>", on_eval_file);
-    o["EvalFileSmall"]                       << Option("<internal>", on_eval_file);
+    o["EvalFile"]                            << Option(EvalFileDefaultNameSmall, on_eval_file);
+    // o["EvalFileSmall"]                    << Option(EvalFileDefaultNameSmall, on_eval_file);
     o["Set Tree Root Plies"]                 << Option(16, 0, 100);
     o["Set Tree Root"]                       << Option(5, 1, 500);
     o["Score Value pv"]                      << Option(20, 0, 10000);
