@@ -62,12 +62,12 @@ namespace Stockfish {
 
     int TUNE_lazyThreshSimpleEval = 2300;
     int TUNE_lazyThreshSmallNet = 1500;
-    int TUNE_nnueBase = 915;
-    int TUNE_optBase = 154;
+    int NNUEvalue = 915;
+    int OptimismValue = 154;
     TUNE(SetRange(1800, 2800), TUNE_lazyThreshSimpleEval);
     TUNE(SetRange(1000, 2000), TUNE_lazyThreshSmallNet);
-    TUNE(SetRange(615, 1215), TUNE_nnueBase);
-    TUNE(SetRange(0, 308), TUNE_optBase);
+    TUNE(SetRange(615, 1215), NNUEvalue);
+    TUNE(SetRange(0, 308), OptimismValue);
 
 namespace Eval {
 
@@ -203,8 +203,8 @@ Value Eval::evaluate(const Position& pos) {
         nnue -= nnue * (nnueComplexity + abs(simpleEval - nnue)) / 32768;
 
         int npm = pos.non_pawn_material() / 64;
-        v       =  (nnue * (TUNE_nnueBase + npm + 9 * pos.count<PAWN>())
-                 +  optimism * (TUNE_optBase + npm)) / 1024;
+        v       =  (nnue * (NNUEvalue + npm + 9 * pos.count<PAWN>())
+                 +  optimism * (OptimismValue + npm)) / 1024;
     }
 
     // Add an advantage based on ratingAdv
