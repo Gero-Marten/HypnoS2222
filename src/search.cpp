@@ -52,6 +52,10 @@
 
 namespace Stockfish {
 
+int Delta1=10, Delta2=15335, OptAvgScore=110, OptAvgScore2=121;  
+TUNE(Delta1);
+TUNE(SetRange(1, 30000), Delta2);
+TUNE(OptAvgScore, OptAvgScore2);
 namespace Search {
 
 LimitsType Limits;
@@ -556,12 +560,12 @@ void Thread::search() {
 
             // Reset aspiration window starting size
             Value avg = rootMoves[pvIdx].averageScore;
-            delta     = Value(9) + int(avg) * avg / 14847;
+            delta     = Value(Delta1) + int(avg) * avg / Delta2;
             alpha     = std::max(avg - delta, -VALUE_INFINITE);
             beta      = std::min(avg + delta, VALUE_INFINITE);
 
             // Adjust optimism based on root move's averageScore (~4 Elo)
-            optimism[us]  = 121 * avg / (std::abs(avg) + 109);
+            optimism[us]  = OptAvgScore * avg / (std::abs(avg) + OptAvgScore2);
             optimism[~us] = -optimism[us];
 
             // Start with a small aspiration window and, in the case of a fail
