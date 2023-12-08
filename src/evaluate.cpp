@@ -60,15 +60,6 @@ const unsigned int         gEmbeddedNNUESmallSize    = 1;
 
 namespace Stockfish {
 
-    int TUNE_lazyThreshSimpleEval = 2300;
-    int TUNE_lazyThreshSmallNet = 1500;
-    int NNUEvalue = 915;
-    int OptimismValue = 154;
-    TUNE(SetRange(1800, 2800), TUNE_lazyThreshSimpleEval);
-    TUNE(SetRange(1000, 2000), TUNE_lazyThreshSmallNet);
-    TUNE(SetRange(615, 1215), NNUEvalue);
-    TUNE(SetRange(0, 308), OptimismValue);
-
 namespace Eval {
 
 std::string currentEvalFileName[2] = {"None", "None"};
@@ -184,12 +175,15 @@ Value Eval::evaluate(const Position& pos) {
     int   shuffling  = pos.rule50_count();
     int   simpleEval = pos.simple_eval();
 
-    bool lazy = abs(simpleEval) > TUNE_lazyThreshSimpleEval;
+    int lazyThresholdSimpleEval = 2300;
+    int lazyThresholdSmallNet = 1500;
+
+    bool lazy = abs(simpleEval) > lazyThresholdSimpleEval;
     if (lazy)
         v = Value(simpleEval);
     else
     {
-        bool smallNet = abs(simpleEval) > TUNE_lazyThreshSmallNet;
+        bool smallNet = abs(simpleEval) > lazyThresholdSmallNet;
 
         int  nnueComplexity;
 
@@ -203,8 +197,7 @@ Value Eval::evaluate(const Position& pos) {
         nnue -= nnue * (nnueComplexity + abs(simpleEval - nnue)) / 32768;
 
         int npm = pos.non_pawn_material() / 64;
-        v       =  (nnue * (NNUEvalue + npm + 9 * pos.count<PAWN>())
-                 +  optimism * (OptimismValue + npm)) / 1024;
+        v       = (nnue * (915 + npm + 9 * pos.count<PAWN>()) + optimism * (154 + npm)) / 1024;
     }
 
     // Add an advantage based on ratingAdv
