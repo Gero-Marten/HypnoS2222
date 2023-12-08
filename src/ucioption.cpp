@@ -81,7 +81,6 @@ void init(OptionsMap& o) {
     o["Clear Hash"]                          << Option(on_clear_hash);
     o["Ponder"]                              << Option(false);
     o["MultiPV"]                             << Option(1, 1, 500);
-    o["Skill Level"]                         << Option(20, 0, 20);
     o["UCI_Chess960"]                        << Option(false);
     o["UCI_LimitStrength"]                   << Option(false);
     o["UCI_Elo"]                             << Option(1320, 1320, 3190);
