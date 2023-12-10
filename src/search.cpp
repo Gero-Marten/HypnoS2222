@@ -471,8 +471,6 @@ void Thread::search() {
     }
 
     size_t multiPV = size_t(Options["MultiPV"]);
-    if (rootPos.game_ply() < int(Options["Set Tree Root Plies"]))
-        multiPV = int(Options["Set Tree Root"]);
 
         multiPV = std::max(multiPV, size_t(4));
 
@@ -665,19 +663,8 @@ void Thread::search() {
 
     mainThread->previousTimeReduction = timeReduction;
 
-
-    int maxPV=0;
-    for (unsigned int i=1; i<rootMoves.size(); ++i)
-         if (rootMoves[i].score + PawnValue * int(Options["Score Value pv"]) / 100 > rootMoves[0].score)
-             maxPV=i;
-    static PRNG rng(now());
-    int iPV;
-    if (maxPV > 0)
-        iPV = rng.rand<unsigned>() % maxPV + 1;
-    else
-      iPV = 0;
-    std::swap(rootMoves[0], rootMoves[iPV]);
 }
+
 
 namespace {
 

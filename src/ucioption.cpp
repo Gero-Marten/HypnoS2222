@@ -103,9 +103,6 @@ void init(OptionsMap& o) {
     o["Experience Book Max Moves"]           << Option(100, 1, 100);
     o["EvalFile"]                            << Option(EvalFileDefaultNameSmall, on_eval_file);
     // o["EvalFileSmall"]                    << Option(EvalFileDefaultNameSmall, on_eval_file);
-    o["Set Tree Root Plies"]                 << Option(16, 0, 100);
-    o["Set Tree Root"]                       << Option(5, 1, 500);
-    o["Score Value pv"]                      << Option(20, 0, 10000);
     o["Adjust Rating Advantage"]             << Option(0, -10000, 10000);
     o["Materialistic Evaluation Strategy"]   << Option(0, -12, 12, on_materialistic_evaluation_strategy);
     o["Positional Evaluation Strategy"]      << Option(0, -12, 12, on_positional_evaluation_strategy);
