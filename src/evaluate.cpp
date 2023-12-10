@@ -195,8 +195,12 @@ Value Eval::evaluate(const Position& pos) {
         nnue -= nnue * (nnueComplexity + abs(simpleEval - nnue)) / 32768;
 
         int npm = pos.non_pawn_material() / 64;
-        v       = (nnue * (915 + npm + 9 * pos.count<PAWN>()) + optimism * (154 + npm)) / 1024;
+        v       = (nnue * (915 + npm + 9 * pos.count<PAWN>())
+            	 + optimism * (154 + npm)) / 1024;
     }
+
+    // Add an advantage based on ratingAdv
+    v += pos.this_thread()->advantage[stm];
 
     // Damp down the evaluation linearly when shuffling
     v = v * (200 - shuffling) / 214;
@@ -217,10 +221,12 @@ std::string Eval::trace(Position& pos) {
         return "Final evaluation: none (in check)";
 
     // Reset any global variable used in eval
-    pos.this_thread()->bestValue       = VALUE_ZERO;
-    pos.this_thread()->rootSimpleEval  = VALUE_ZERO;
-    pos.this_thread()->optimism[WHITE] = VALUE_ZERO;
-    pos.this_thread()->optimism[BLACK] = VALUE_ZERO;
+    pos.this_thread()->bestValue        = VALUE_ZERO;
+    pos.this_thread()->rootSimpleEval   = VALUE_ZERO;
+    pos.this_thread()->optimism[WHITE]  = VALUE_ZERO;
+    pos.this_thread()->optimism[BLACK]  = VALUE_ZERO;
+    pos.this_thread()->advantage[WHITE] = VALUE_ZERO;
+    pos.this_thread()->advantage[BLACK] = VALUE_ZERO;
 
     std::stringstream ss;
     ss << std::showpoint << std::noshowpos << std::fixed << std::setprecision(2);
