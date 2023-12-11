@@ -30,11 +30,34 @@
 
 namespace Stockfish::Eval::NNUE::Features {
 
+  IndexType FeatureIndexTable[COLOR_NB][SQUARE_NB][PIECE_NB][SQUARE_NB];
+
+#define incEnum(t, v) v = t(int(v)+1)
+
+  void init() {
+    for (Color Perspective = WHITE; Perspective <= BLACK; incEnum(Color, Perspective))
+      for (Square s = SQ_A1; s < SQUARE_NB; incEnum(Square, s))
+      {
+        for (Piece pc = W_PAWN; pc < PIECE_NB; incEnum(Piece, pc))
+        {
+          for (Square ksq = SQ_A1; ksq < SQUARE_NB; incEnum(Square, ksq))
+          {
+            FeatureIndexTable[Perspective][s][pc][ksq] = HalfKAv2_hm::make_index_not_cached(Perspective, s, pc, ksq);
+          }
+        }
+      }
+  }
+
+#undef incEnum
+
+  inline IndexType HalfKAv2_hm::make_index_not_cached(Color Perspective, Square s, Piece pc, Square ksq) {
+    return IndexType((int(s) ^ OrientTBL[Perspective][ksq]) + PieceSquareIndex[Perspective][pc] + KingBuckets[Perspective][ksq]);
+  }
+
 // Index of a feature for a given king position and another piece on some square
 template<Color Perspective>
 inline IndexType HalfKAv2_hm::make_index(Square s, Piece pc, Square ksq) {
-    return IndexType((int(s) ^ OrientTBL[Perspective][ksq]) + PieceSquareIndex[Perspective][pc]
-                     + KingBuckets[Perspective][ksq]);
+            return FeatureIndexTable[Perspective][s][pc][ksq];
 }
 
 // Get a list of indices for active features
