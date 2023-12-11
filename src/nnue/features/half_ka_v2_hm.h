@@ -37,8 +37,6 @@ class Position;
 
 namespace Stockfish::Eval::NNUE::Features {
 
-  void init();
-
 // Feature HalfKAv2_hm: Combination of the position of own king
 // and the position of pieces. Position mirrored such that king always on e..h files.
 class HalfKAv2_hm {
@@ -73,7 +71,6 @@ class HalfKAv2_hm {
     static IndexType make_index(Square s, Piece pc, Square ksq);
 
    public:
-
     // Feature name
     static constexpr const char* Name = "HalfKAv2_hm(Friend)";
 
@@ -126,9 +123,6 @@ class HalfKAv2_hm {
         SQ_H8, SQ_H8, SQ_H8, SQ_H8, SQ_A8, SQ_A8, SQ_A8, SQ_A8,
         SQ_H8, SQ_H8, SQ_H8, SQ_H8, SQ_A8, SQ_A8, SQ_A8, SQ_A8 }
     };
-
-    static IndexType make_index_not_cached(Color Perspective, Square s, Piece pc, Square ksq);
-
     // clang-format on
 
     // Maximum number of simultaneously active features.

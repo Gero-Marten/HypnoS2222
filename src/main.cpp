@@ -67,13 +67,13 @@ std::cout << "Licence to: Marco Zerbinati" << std::endl;
   Experience::init();
   Threads.set(size_t(Options["Threads"]));
   Search::clear(); // After threads are up
-  Eval::NNUE::Features::init();
   Eval::NNUE::init();
   Book::init();
 
   UCI::loop(argc, argv);
 
   Experience::unload();
-  Threads.set(0);
-  return 0;
+
+    Threads.set(0);
+    return 0;
 }

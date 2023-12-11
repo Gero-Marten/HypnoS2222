@@ -326,6 +326,8 @@ void UCI::loop(int argc, char* argv[]) {
             sync_cout << pos << sync_endl;
         else if (token == "eval")
             trace_eval(pos);
+        else if (token == "book")
+            Book::show_moves(pos);    
         else if (token == "compiler")
             sync_cout << compiler_info() << sync_endl;
         else if (argc > 2 && token == "defrag")

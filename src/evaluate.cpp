@@ -175,13 +175,15 @@ Value Eval::evaluate(const Position& pos) {
     int   shuffling  = pos.rule50_count();
     int   simpleEval = pos.simple_eval();
 
-    bool lazy = abs(simpleEval) > 2300 ||
-                (pos.count<ALL_PIECES>() <= 7 && abs(simpleEval) > 2000);
+    int lazyThresholdSimpleEval = 2300;
+    int lazyThresholdSmallNet = 1500;
+
+    bool lazy = abs(simpleEval) > lazyThresholdSimpleEval;
     if (lazy)
         v = Value(simpleEval);
     else
     {
-        bool smallNet = abs(simpleEval) > 1500;
+        bool smallNet = abs(simpleEval) > lazyThresholdSmallNet;
 
         int  nnueComplexity;
 
@@ -197,9 +199,6 @@ Value Eval::evaluate(const Position& pos) {
         int npm = pos.non_pawn_material() / 64;
         v       = (nnue * (915 + npm + 9 * pos.count<PAWN>()) + optimism * (154 + npm)) / 1024;
     }
-
-    // Add an advantage based on ratingAdv
-    v += pos.this_thread()->advantage[stm];
 
     // Damp down the evaluation linearly when shuffling
     v = v * (200 - shuffling) / 214;
@@ -220,12 +219,10 @@ std::string Eval::trace(Position& pos) {
         return "Final evaluation: none (in check)";
 
     // Reset any global variable used in eval
-    pos.this_thread()->bestValue        = VALUE_ZERO;
-    pos.this_thread()->rootSimpleEval   = VALUE_ZERO;
-    pos.this_thread()->optimism[WHITE]  = VALUE_ZERO;
-    pos.this_thread()->optimism[BLACK]  = VALUE_ZERO;
-    pos.this_thread()->advantage[WHITE] = VALUE_ZERO;
-    pos.this_thread()->advantage[BLACK] = VALUE_ZERO;
+    pos.this_thread()->bestValue       = VALUE_ZERO;
+    pos.this_thread()->rootSimpleEval  = VALUE_ZERO;
+    pos.this_thread()->optimism[WHITE] = VALUE_ZERO;
+    pos.this_thread()->optimism[BLACK] = VALUE_ZERO;
 
     std::stringstream ss;
     ss << std::showpoint << std::noshowpos << std::fixed << std::setprecision(2);
