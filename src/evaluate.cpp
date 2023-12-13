@@ -62,9 +62,9 @@ namespace Stockfish {
 
 namespace Eval {
 
-std::string currentEvalFileName[2] = {"None", "None"};
-const std::string EvFiles[2]       = {"EvalFileBig", "EvalFile"};
-const std::string EvFileNames[2]   = {EvalFileDefaultNameBig, EvalFileDefaultNameSmall};
+std::string       currentEvalFileName[2] = {"None", "None"};
+const std::string EvFiles[2]             = {"EvalFile", "EvalFileSmall"};
+const std::string EvFileNames[2]         = {EvalFileDefaultNameBig, EvalFileDefaultNameSmall};
 
 int NNUE::MaterialisticEvaluationStrategy = 0;
 int NNUE::PositionalEvaluationStrategy = 0;

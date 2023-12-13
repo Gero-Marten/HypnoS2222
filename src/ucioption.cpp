@@ -101,8 +101,8 @@ void init(OptionsMap& o) {
     o["Experience Book Eval Importance"]     << Option(5, 0, 10);
     o["Experience Book Min Depth"]           << Option(27, EXP_MIN_DEPTH, 64);
     o["Experience Book Max Moves"]           << Option(100, 1, 100);
-    o["EvalFile"]                            << Option(EvalFileDefaultNameSmall, on_eval_file);
-    // o["EvalFileSmall"]                    << Option(EvalFileDefaultNameSmall, on_eval_file);
+    o["EvalFile"]                            << Option(EvalFileDefaultNameBig, on_eval_file);
+    o["EvalFileSmall"]                       << Option(EvalFileDefaultNameSmall, on_eval_file);
     o["Materialistic Evaluation Strategy"]   << Option(0, -12, 12, on_materialistic_evaluation_strategy);
     o["Positional Evaluation Strategy"]      << Option(0, -12, 12, on_positional_evaluation_strategy);
     //Define hidden options
