@@ -47,6 +47,9 @@ using std::string;
 
 namespace Stockfish {
 
+int TUNE_lazyThresholdSmallNet = 1300;
+TUNE(SetRange(600, 1500), TUNE_lazyThresholdSmallNet);
+
 namespace Zobrist {
 
 Key psq[PIECE_NB][SQUARE_NB];
@@ -1467,12 +1470,10 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
     ++st->pliesFromNull;
 
     // Used by NNUE
-    st->accumulatorBig.computed[WHITE] =
-    st->accumulatorBig.computed[BLACK] =
-    st->accumulatorSmall.computed[WHITE] =
-    st->accumulatorSmall.computed[BLACK] = false;
-    auto& dp                        = st->dirtyPiece;
-    dp.dirty_num                    = 1;
+    st->accumulatorBig.computed[WHITE]   = st->accumulatorBig.computed[BLACK]   =
+    st->accumulatorSmall.computed[WHITE] = st->accumulatorSmall.computed[BLACK] = false;
+    auto& dp                                                                      = st->dirtyPiece;
+    dp.dirty_num                                                                  = 1;
 
     Color  us       = sideToMove;
     Color  them     = ~us;
@@ -1754,12 +1755,10 @@ void Position::do_null_move(StateInfo& newSt) {
     newSt.previous = st;
     st             = &newSt;
 
-    st->dirtyPiece.dirty_num        = 0;
-    st->dirtyPiece.piece[0]         = NO_PIECE;  // Avoid checks in UpdateAccumulator()
-    st->accumulatorBig.computed[WHITE] =
-    st->accumulatorBig.computed[BLACK] =
-    st->accumulatorSmall.computed[WHITE] =
-    st->accumulatorSmall.computed[BLACK] = false;
+    st->dirtyPiece.dirty_num               = 0;
+    st->dirtyPiece.piece[0]                = NO_PIECE;  // Avoid checks in UpdateAccumulator()
+    st->accumulatorBig.computed[WHITE]     = st->accumulatorBig.computed[BLACK]   =
+      st->accumulatorSmall.computed[WHITE] = st->accumulatorSmall.computed[BLACK] = false;
 
     if (st->epSquare != SQ_NONE)
     {
@@ -1929,6 +1928,9 @@ bool Position::is_draw(int ply) const {
     return st->repetition && st->repetition < ply;
 }
 
+bool Position::use_small_net() const {
+    return abs(simple_eval()) > TUNE_lazyThresholdSmallNet;
+}
 
 // Tests whether there has been at least one repetition
 // of positions since the last capture or pawn move.

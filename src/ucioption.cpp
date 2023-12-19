@@ -103,6 +103,7 @@ void init(OptionsMap& o) {
     o["Experience Book Max Moves"]           << Option(100, 1, 100);
     o["EvalFile"]                            << Option(EvalFileDefaultNameBig, on_eval_file);
     o["EvalFileSmall"]                       << Option(EvalFileDefaultNameSmall, on_eval_file);
+    o["Adjust Rating Advantage"]             << Option(0, -10000, 10000);
     o["Materialistic Evaluation Strategy"]   << Option(0, -12, 12, on_materialistic_evaluation_strategy);
     o["Positional Evaluation Strategy"]      << Option(0, -12, 12, on_positional_evaluation_strategy);
     //Define hidden options
@@ -110,8 +111,6 @@ void init(OptionsMap& o) {
     o["(CTG) Book 1 Only Green"].isHidden = true;
     o["Experience Enabled"].isHidden = true;
     o["Experience Readonly"].isHidden = true;
-    o["Experience Book"].isHidden = true;
-    o["Experience Book Best Move"].isHidden = true;
 }
 
 

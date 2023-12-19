@@ -472,9 +472,18 @@ void Thread::search() {
 
     size_t multiPV = size_t(Options["MultiPV"]);
 
-        multiPV = std::max(multiPV, size_t(4));
-
     multiPV = std::min(multiPV, rootMoves.size());
+
+    // Compute the eval shift based on the rating advantage.
+    // This really just shifts the relative value of guaranteed draws.
+    int ratingAdv = int(Options["Adjust Rating Advantage"]);
+    if (ratingAdv)
+    {
+        // 2 * log(10) * wdl_model b
+        const int prefactor  = 2 * 2.302585 * 60;
+        this->advantage[us]  = Value(prefactor * ratingAdv / 400);
+        this->advantage[~us] = -this->advantage[us];
+    }
 
     int searchAgainCounter = 0;
 
@@ -879,7 +888,8 @@ Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, boo
 
                 // use the range VALUE_TB to VALUE_TB_WIN_IN_MAX_PLY to score
                 value = wdl < -drawScore ? -tbValue
-                      : wdl > drawScore  ? tbValue                                         : VALUE_DRAW + 2 * wdl * drawScore;
+                      : wdl > drawScore  ? tbValue
+                                         : VALUE_DRAW + 2 * wdl * drawScore;
 
                 Bound b = wdl < -drawScore ? BOUND_UPPER
                         : wdl > drawScore  ? BOUND_LOWER
@@ -1834,12 +1844,14 @@ Value value_to_tt(Value v, int ply) {
 // from the transposition table (which refers to the plies to mate/be mated from
 // current position) to "plies to mate/be mated (TB win/loss) from the root".
 // However, to avoid potentially false mate or TB scores related to the 50 moves rule
-// and the graph history interaction, we return highest non-TB score instead.Value value_from_tt(Value v, int ply, int r50c) {
+// and the graph history interaction, we return highest non-TB score instead.
+
+Value value_from_tt(Value v, int ply, int r50c) {
 
     if (v == VALUE_NONE)
         return VALUE_NONE;
 
-        // handle TB win or better
+    // handle TB win or better
     if (v >= VALUE_TB_WIN_IN_MAX_PLY)
     {
         // Downgrade a potentially false mate score
@@ -1853,10 +1865,16 @@ Value value_to_tt(Value v, int ply) {
         return v - ply;
     }
 
-    if (v <= VALUE_TB_LOSS_IN_MAX_PLY)  // TB loss or worse
+    // handle TB loss or worse
+    if (v <= VALUE_TB_LOSS_IN_MAX_PLY)
     {
-        if (v <= VALUE_MATED_IN_MAX_PLY && VALUE_MATE + v > 99 - r50c)
-            return VALUE_MATED_IN_MAX_PLY + 1;  // do not return a potentially false mate score
+        // Downgrade a potentially false mate score.
+        if (v <= VALUE_MATED_IN_MAX_PLY && VALUE_MATE + v > 100 - r50c)
+            return VALUE_TB_LOSS_IN_MAX_PLY + 1;
+
+        // Downgrade a potentially false TB score.
+        if (VALUE_TB + v > 100 - r50c)
+            return VALUE_TB_LOSS_IN_MAX_PLY + 1;
 
         return v + ply;
     }

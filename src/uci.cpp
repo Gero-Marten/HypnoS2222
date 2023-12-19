@@ -42,6 +42,7 @@
 #include "misc.h"
 #include "movegen.h"
 #include "nnue/evaluate_nnue.h"
+#include "nnue/nnue_architecture.h"
 #include "position.h"
 #include "search.h"
 #include "thread.h"
@@ -90,7 +91,7 @@ void position(Position& pos, std::istringstream& is, StateListPtr& states) {
     static constexpr Key StartPosKey = 0xB4D30CD15A43432D;
     if (firstKey == StartPosKey && pos.game_ply() == 0)
         Experience::resume_learning();
-  }
+}
 
 // Prints the evaluation of the current position,
 // consistent with the UCI options set so far.
@@ -346,7 +347,7 @@ void UCI::loop(int argc, char* argv[]) {
             std::string                f;
             if (is >> std::skipws >> f)
                 filename = f;
-            Eval::NNUE::save_eval(filename, false);
+            Eval::NNUE::save_eval(filename, Eval::NNUE::Big);
         }
         else if (token == "--help" || token == "help" || token == "--license" || token == "license")
             sync_cout

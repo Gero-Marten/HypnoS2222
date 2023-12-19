@@ -25,6 +25,7 @@
 #include <cassert>
 #include <cstdlib>
 #include <fstream>
+#include <initializer_list>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
@@ -33,6 +34,7 @@
 #include "incbin/incbin.h"
 #include "misc.h"
 #include "nnue/evaluate_nnue.h"
+#include "nnue/nnue_architecture.h"
 #include "position.h"
 #include "thread.h"
 #include "types.h"
@@ -46,7 +48,7 @@
 //     const unsigned int         gEmbeddedNNUESize;    // the size of the embedded file
 // Note that this does not work in Microsoft Visual Studio.
 #if !defined(_MSC_VER) && !defined(NNUE_EMBEDDING_OFF)
-INCBIN(EmbeddedNNUEBig,   EvalFileDefaultNameBig);
+INCBIN(EmbeddedNNUEBig, EvalFileDefaultNameBig);
 INCBIN(EmbeddedNNUESmall, EvalFileDefaultNameSmall);
 #else
 const unsigned char        gEmbeddedNNUEBigData[1]   = {0x0};
@@ -60,6 +62,8 @@ const unsigned int         gEmbeddedNNUESmallSize    = 1;
 
 namespace Stockfish {
 
+  int TUNE_lazyThresholdSimpleEval = 2300;
+  TUNE(SetRange(2100, 3000), TUNE_lazyThresholdSimpleEval);
 namespace Eval {
 
 std::string       currentEvalFileName[2] = {"None", "None"};
@@ -78,31 +82,32 @@ int NNUE::PositionalEvaluationStrategy = 0;
 // variable to have the engine search in a special directory in their distro.
 void NNUE::init() {
 
-    for (bool small : {false, true})
+    for (NetSize netSize : {Big, Small})
     {
-        std::string eval_file = std::string(Options[EvFiles[small]]);
+        std::string eval_file =
+          std::string(netSize == Small ? EvalFileDefaultNameSmall : Options[EvFiles[netSize]]);
         if (eval_file.empty())
-            eval_file = EvFileNames[small];
+            eval_file = EvFileNames[netSize];
 
 #if defined(DEFAULT_NNUE_DIRECTORY)
-    std::vector<std::string> dirs = {"<internal>", "", CommandLine::binaryDirectory,
-                                     stringify(DEFAULT_NNUE_DIRECTORY)};
+        std::vector<std::string> dirs = {"<internal>", "", CommandLine::binaryDirectory,
+                                         stringify(DEFAULT_NNUE_DIRECTORY)};
 #else
-    std::vector<std::string> dirs = {"<internal>", "", CommandLine::binaryDirectory};
+        std::vector<std::string> dirs = {"<internal>", "", CommandLine::binaryDirectory};
 #endif
 
         for (const std::string& directory : dirs)
         {
-            if (currentEvalFileName[small] != eval_file)
+            if (currentEvalFileName[netSize] != eval_file)
             {
                 if (directory != "<internal>")
                 {
                     std::ifstream stream(directory + eval_file, std::ios::binary);
-                    if (NNUE::load_eval(eval_file, stream, small))
-                        currentEvalFileName[small] = eval_file;
+                    if (NNUE::load_eval(eval_file, stream, netSize))
+                        currentEvalFileName[netSize] = eval_file;
                 }
 
-                if (directory == "<internal>" && eval_file == EvFileNames[small])
+                if (directory == "<internal>" && eval_file == EvFileNames[netSize])
                 {
                     // C++ way to prepare a buffer for a memory stream
                     class MemoryBuffer: public std::basic_streambuf<char> {
@@ -115,14 +120,14 @@ void NNUE::init() {
 
                     MemoryBuffer buffer(
                       const_cast<char*>(reinterpret_cast<const char*>(
-                        small ? gEmbeddedNNUESmallData : gEmbeddedNNUEBigData)),
-                      size_t(small ? gEmbeddedNNUESmallSize : gEmbeddedNNUEBigSize));
+                        netSize == Small ? gEmbeddedNNUESmallData : gEmbeddedNNUEBigData)),
+                      size_t(netSize == Small ? gEmbeddedNNUESmallSize : gEmbeddedNNUEBigSize));
                     (void) gEmbeddedNNUEBigEnd;  // Silence warning on unused variable
                     (void) gEmbeddedNNUESmallEnd;
 
                     std::istream stream(&buffer);
-                    if (NNUE::load_eval(eval_file, stream, small))
-                        currentEvalFileName[small] = eval_file;
+                    if (NNUE::load_eval(eval_file, stream, netSize))
+                        currentEvalFileName[netSize] = eval_file;
                 }
             }
         }
@@ -132,13 +137,14 @@ void NNUE::init() {
 // Verifies that the last net used was loaded successfully
 void NNUE::verify() {
 
-    for (bool small : {false, true})
+    for (NetSize netSize : {Big, Small})
     {
-        std::string eval_file = std::string(Options[EvFiles[small]]);
+        std::string eval_file =
+          std::string(netSize == Small ? EvalFileDefaultNameSmall : Options[EvFiles[netSize]]);
         if (eval_file.empty())
-            eval_file = EvFileNames[small];
+            eval_file = EvFileNames[netSize];
 
-        if (currentEvalFileName[small] != eval_file)
+        if (currentEvalFileName[netSize] != eval_file)
         {
             std::string msg1 =
               "Network evaluation parameters compatible with the engine must be available.";
@@ -147,7 +153,7 @@ void NNUE::verify() {
                                "including the directory name, to the network file.";
             std::string msg4 = "The default net can be downloaded from: "
                                "https://tests.stockfishchess.org/api/nn/"
-                             + std::string(EvFileNames[small]);
+                             + std::string(EvFileNames[netSize]);
             std::string msg5 = "The engine will be terminated now.";
 
             sync_cout << "info string ERROR: " << msg1 << sync_endl;
@@ -164,6 +170,15 @@ void NNUE::verify() {
 }
 }
 
+// Returns a static, purely materialistic evaluation of the position from
+// the point of view of the given color. It can be divided by PawnValue to get
+// an approximation of the material advantage on the board in terms of pawns.
+Value Eval::simple_eval(const Position& pos, Color c) {
+    return PawnValue * (pos.count<PAWN>(c) - pos.count<PAWN>(~c))
+         + (pos.non_pawn_material(c) - pos.non_pawn_material(~c));
+}
+
+
 // Evaluate is the evaluator for the outer world. It returns a static evaluation
 // of the position from the point of view of the side to move.
 Value Eval::evaluate(const Position& pos) {
@@ -175,20 +190,15 @@ Value Eval::evaluate(const Position& pos) {
     int   shuffling  = pos.rule50_count();
     int   simpleEval = pos.simple_eval();
 
-    int lazyThresholdSimpleEval = 2550;
-    int lazyThresholdSmallNet = 800;
-
-    bool lazy = abs(simpleEval) > lazyThresholdSimpleEval;
+    bool lazy = abs(simpleEval) > TUNE_lazyThresholdSimpleEval;
     if (lazy)
         v = Value(simpleEval);
     else
     {
-        bool smallNet = abs(simpleEval) > lazyThresholdSmallNet;
-
         int  nnueComplexity;
 
-        Value nnue = smallNet ? NNUE::evaluate<true>(pos, true, &nnueComplexity)
-                              : NNUE::evaluate<false>(pos, true, &nnueComplexity);
+        Value nnue = pos.use_small_net() ? NNUE::evaluate<NNUE::Small>(pos, true, &nnueComplexity)
+                                         : NNUE::evaluate<NNUE::Big>(pos, true, &nnueComplexity);
 
         Value optimism = pos.this_thread()->optimism[stm];
 
@@ -199,6 +209,9 @@ Value Eval::evaluate(const Position& pos) {
         int npm = pos.non_pawn_material() / 64;
         v       = (nnue * (915 + npm + 9 * pos.count<PAWN>()) + optimism * (154 + npm)) / 1024;
     }
+
+    // Add an advantage based on ratingAdv
+    v += pos.this_thread()->advantage[stm];
 
     // Damp down the evaluation linearly when shuffling
     v = v * (200 - shuffling) / 214;
@@ -219,10 +232,12 @@ std::string Eval::trace(Position& pos) {
         return "Final evaluation: none (in check)";
 
     // Reset any global variable used in eval
-    pos.this_thread()->bestValue       = VALUE_ZERO;
-    pos.this_thread()->rootSimpleEval  = VALUE_ZERO;
+    pos.this_thread()->bestValue = VALUE_ZERO;
+    pos.this_thread()->rootSimpleEval = VALUE_ZERO;
     pos.this_thread()->optimism[WHITE] = VALUE_ZERO;
     pos.this_thread()->optimism[BLACK] = VALUE_ZERO;
+    pos.this_thread()->advantage[WHITE] = VALUE_ZERO;
+    pos.this_thread()->advantage[BLACK] = VALUE_ZERO;
 
     std::stringstream ss;
     ss << std::showpoint << std::noshowpos << std::fixed << std::setprecision(2);
@@ -231,7 +246,7 @@ std::string Eval::trace(Position& pos) {
     ss << std::showpoint << std::showpos << std::fixed << std::setprecision(2) << std::setw(15);
 
     Value v;
-    v = NNUE::evaluate<false>(pos, false);
+    v = NNUE::evaluate<NNUE::Big>(pos, false);
     v = pos.side_to_move() == WHITE ? v : -v;
     ss << "NNUE evaluation        " << 0.01 * UCI::to_cp(v) << " (white side)\n";
 
