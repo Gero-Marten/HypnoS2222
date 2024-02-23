@@ -82,6 +82,7 @@ void init(OptionsMap& o) {
     o["Clear Hash"]                          << Option(on_clear_hash);
     o["Ponder"]                              << Option(false);
     o["MultiPV"]                             << Option(1, 1, 500);
+    o["Skill Level"]                         << Option(20, 0, 20);
     o["UCI_Chess960"]                        << Option(false);
     o["UCI_LimitStrength"]                   << Option(false);
     o["UCI_Elo"]                             << Option(1320, 1320, 3190);
@@ -89,9 +90,11 @@ void init(OptionsMap& o) {
     o["Book 1 File"]                         << Option("<empty>", on_book1);
     o["Book 1 Width"]                        << Option(1, 1, 20);
     o["Book 1 Depth"]                        << Option(255, 1, 255);
+	o["(CTG) Book 1 Only Green"]             << Option(true);
     o["Book 2 File"]                         << Option("<empty>", on_book2);
     o["Book 2 Width"]                        << Option(1, 1, 20);
     o["Book 2 Depth"]                        << Option(255, 1, 255);
+	o["(CTG) Book 2 Only Green"]             << Option(true);
     o["SyzygyPath"]                          << Option("<empty>", on_tb_path);
     o["SyzygyProbeDepth"]                    << Option(1, 1, 100);
     o["Syzygy50MoveRule"]                    << Option(true);
@@ -111,6 +114,8 @@ void init(OptionsMap& o) {
     o["Materialistic Evaluation Strategy"]   << Option(0, -12, 12, on_materialistic_evaluation_strategy);
     o["Positional Evaluation Strategy"]      << Option(0, -12, 12, on_positional_evaluation_strategy);
     //Define hidden options
+    o["(CTG) Book 1 Only Green"].isHidden = true;
+    o["(CTG) Book 2 Only Green"].isHidden = true;
 }
 
 
