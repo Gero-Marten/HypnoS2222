@@ -779,10 +779,13 @@ Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, boo
     const Experience::ExpEntryEx* bestExp = nullptr;
 
     //Update update quiet stats, continuation histories, and main history from experience data
+    int expCount = 0;
     while (tempExp)
     {
         if (tempExp->depth >= depth)
         {
+            ++expCount;
+
             //Got better experience entry than TT entry?
             if (!bestExp && (!ss->ttHit || tempExp->depth > tte->depth()))
             {
@@ -831,6 +834,10 @@ Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, boo
 
         tempExp = tempExp->next;
     }
+
+    //Increment tbHits
+    if (expCount)
+        thisThread->tbHits.fetch_add(expCount, std::memory_order_relaxed);
 
     // At non-PV nodes we check for an early TT cutoff
     if (!PvNode && !excludedMove && tte->depth() > depth
