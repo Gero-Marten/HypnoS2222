@@ -62,8 +62,6 @@ const unsigned int         gEmbeddedNNUESmallSize    = 1;
 
 namespace Stockfish {
 
-  int TUNE_lazyThresholdSimpleEval = 2300;
-  TUNE(SetRange(2100, 3000), TUNE_lazyThresholdSimpleEval);
 namespace Eval {
 
 std::string       currentEvalFileName[2] = {"None", "None"};
@@ -188,17 +186,19 @@ Value Eval::evaluate(const Position& pos) {
     Value v;
     Color stm        = pos.side_to_move();
     int   shuffling  = pos.rule50_count();
-    int   simpleEval = pos.simple_eval();
+    int   simpleEval = simple_eval(pos, stm);
 
-    bool lazy = abs(simpleEval) > TUNE_lazyThresholdSimpleEval;
+    bool lazy = abs(simpleEval) > 2700;
     if (lazy)
         v = Value(simpleEval);
     else
     {
-        int  nnueComplexity;
+        bool smallNet = abs(simpleEval) > 1050;
 
-        Value nnue = pos.use_small_net() ? NNUE::evaluate<NNUE::Small>(pos, true, &nnueComplexity)
-                                         : NNUE::evaluate<NNUE::Big>(pos, true, &nnueComplexity);
+        int nnueComplexity;
+
+        Value nnue = smallNet ? NNUE::evaluate<NNUE::Small>(pos, true, &nnueComplexity)
+                              : NNUE::evaluate<NNUE::Big>(pos, true, &nnueComplexity);
 
         Value optimism = pos.this_thread()->optimism[stm];
 
@@ -209,9 +209,6 @@ Value Eval::evaluate(const Position& pos) {
         int npm = pos.non_pawn_material() / 64;
         v       = (nnue * (915 + npm + 9 * pos.count<PAWN>()) + optimism * (154 + npm)) / 1024;
     }
-
-    // Add an advantage based on ratingAdv
-    v += pos.this_thread()->advantage[stm];
 
     // Damp down the evaluation linearly when shuffling
     v = v * (200 - shuffling) / 214;
@@ -236,8 +233,6 @@ std::string Eval::trace(Position& pos) {
     pos.this_thread()->rootSimpleEval = VALUE_ZERO;
     pos.this_thread()->optimism[WHITE] = VALUE_ZERO;
     pos.this_thread()->optimism[BLACK] = VALUE_ZERO;
-    pos.this_thread()->advantage[WHITE] = VALUE_ZERO;
-    pos.this_thread()->advantage[BLACK] = VALUE_ZERO;
 
     std::stringstream ss;
     ss << std::showpoint << std::noshowpos << std::fixed << std::setprecision(2);

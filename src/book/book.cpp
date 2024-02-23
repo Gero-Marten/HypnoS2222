@@ -35,7 +35,8 @@ namespace Stockfish::Book
         for (size_t i = 0; i < NumBooks; ++i)
             books[i] = nullptr;
 
-        on_book(0, (string)Options["CTG/BIN Book"]);
+    on_book(0, (string) Options["Book 1 File"]);
+    on_book(1, (string) Options["Book 2 File"]);
     }
 
     void finalize()
@@ -83,9 +84,9 @@ namespace Stockfish::Book
 
         for (size_t i = 0; i < NumBooks; ++i)
         {
-            if (books[i] != nullptr && (int)Options[Utility::format_string("Depth Moves", i + 1)] >= moveNumber)
+            if (books[i] != nullptr && (int)Options[Utility::format_string("Book %d Depth", i + 1)] >= moveNumber)
             {
-                bookMove = books[i]->probe(pos, (size_t)(int)Options[Utility::format_string("Repertoire Width", i + 1)], (bool)Options[Utility::format_string("(CTG) Book %d Only Green", i + 1)]);
+                bookMove = books[i]->probe(pos, (size_t)(int)Options[Utility::format_string("Book %d Width", i + 1)], (bool)Options[Utility::format_string("(CTG) Book %d Only Green", i + 1)]);
                 if (bookMove != MOVE_NONE)
                     break;
             }

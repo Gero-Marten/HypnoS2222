@@ -47,9 +47,6 @@ using std::string;
 
 namespace Stockfish {
 
-int TUNE_lazyThresholdSmallNet = 1300;
-TUNE(SetRange(600, 1500), TUNE_lazyThresholdSmallNet);
-
 namespace Zobrist {
 
 Key psq[PIECE_NB][SQUARE_NB];
@@ -1928,9 +1925,6 @@ bool Position::is_draw(int ply) const {
     return st->repetition && st->repetition < ply;
 }
 
-bool Position::use_small_net() const {
-    return abs(simple_eval()) > TUNE_lazyThresholdSmallNet;
-}
 
 // Tests whether there has been at least one repetition
 // of positions since the last capture or pawn move.

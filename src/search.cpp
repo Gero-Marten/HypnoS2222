@@ -30,6 +30,7 @@
 #include <cstring>
 #include <initializer_list>
 #include <iostream>
+#include <random>
 #include <sstream>
 #include <string>
 #include <utility>
@@ -109,6 +110,19 @@ Value value_draw(const Thread* thisThread) {
     return VALUE_DRAW - 1 + Value(thisThread->nodes & 0x2);
 }
 
+// Random generators
+std::random_device& get_random_device() {
+    static std::random_device rd;
+    return rd;
+}
+
+std::mt19937& get_random_generator() {
+    static std::mt19937 gen(get_random_device()());
+    return gen;
+}
+
+int variety;
+
 template<NodeType nodeType>
 Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, bool cutNode);
 
@@ -180,6 +194,7 @@ void Search::clear() {
     TT.clear();
     Threads.clear();
     Tablebases::init(Options["SyzygyPath"]);  // Free mapped files
+
     Experience::save();
     Experience::resume_learning();
 }
@@ -204,6 +219,7 @@ void MainThread::search() {
     TT.new_search();
 
     Eval::NNUE::verify();
+    variety = Options["Variety"];
 
   bool think = true;
 
@@ -220,92 +236,91 @@ void MainThread::search() {
           //Probe the configured books
           Move bookMove = Book::probe(rootPos);
 
-          //Check experience book
-          if (bookMove == MOVE_NONE && (bool)Options["Experience Book"] && rootPos.game_ply() / 2 < (int)Options["Experience Book Max Moves"] && Experience::enabled())
-          {
-              Depth expBookMinDepth = (Depth)Options["Experience Book Min Depth"];
-              const Experience::ExpEntryEx* exp = Experience::probe(rootPos.key());
+            // Check experience book
+			   
+            if (bookMove == MOVE_NONE && (bool) Options["Experience Book"]
+                && rootPos.game_ply() / 2 < (int) Options["Experience Book Max Moves"]
+                && Experience::enabled())
+            {
+                Depth expBookMinDepth             = (Depth) Options["Experience Book Min Depth"];
+                int   experienceBookWidth         = (int) Options["Experience Book Width"];
+                const Experience::ExpEntryEx* exp = Experience::probe(rootPos.key());
 
-              if (exp)
-              {
-                  int evalImportance = (int)Options["Experience Book Eval Importance"];
-                  vector<pair<const Experience::ExpEntryEx*, int>> quality;
-                  const Experience::ExpEntryEx* temp = exp;
-                  while (temp)
-                  {
-                      if (temp->depth >= expBookMinDepth)
-                      {
-                          pair<int, bool> q = temp->quality(rootPos, evalImportance);
-                          if (q.first > 0 && !q.second)
-                              quality.emplace_back(temp, q.first);
-                      }
+                if (exp)
+                {
+                    int evalImportance = (int) Options["Experience Book Eval Importance"];
+                    vector<pair<const Experience::ExpEntryEx*, int>> quality;
+                    const Experience::ExpEntryEx*                    temp = exp;
+                    while (temp)
+                    {
+                        if (temp->depth >= (uint8_t) expBookMinDepth)
+                        {
+                            pair<int, bool> q = temp->quality(rootPos, evalImportance);
+                            if (q.first > 0 && !q.second)
+                                quality.emplace_back(temp, q.first);
+                        }
 
-                      temp = temp->next;
-                  }
-					  
-																		 
+                        temp = temp->next;
+                    }
 
-                  //Sort experience moves based on quality
-                  stable_sort(
-                      quality.begin(),
-                      quality.end(),
-                      [](const pair<const Experience::ExpEntryEx*, int>& a, const pair<const Experience::ExpEntryEx*, int>& b)
-                      {
-                          return a.second > b.second;
-                      });
+                    // Sort experience moves based on quality
+                    stable_sort(quality.begin(), quality.end(),
+                                [](const pair<const Experience::ExpEntryEx*, int>& a,
+                                   const pair<const Experience::ExpEntryEx*, int>& b) {
+                                    return a.second > b.second;
+                                });
 
-                  if (quality.size())
-                  {
-                      //Sort experience moves based on quality
-                      stable_sort(
-                          quality.begin(),
-                          quality.end(),
-                          [](const pair<const Experience::ExpEntryEx*, int>& a, const pair<const Experience::ExpEntryEx*, int>& b)
-                          {
-                              return a.second > b.second;
-                          });
+                    if (!quality.empty())
+                    {
+                        // Sort experience moves based on quality
+                        stable_sort(quality.begin(), quality.end(),
+                                    [](const pair<const Experience::ExpEntryEx*, int>& a,
+                                       const pair<const Experience::ExpEntryEx*, int>& b) {
+                                        return a.second > b.second;
+                                    });
 
-                      //Provide some info to the GUI about available exp moves
-                      int expCount = 0;
-                      for (auto it = quality.rbegin(); it != quality.rend(); ++it)
-                      {
-                          ++expCount;
-
-                          sync_cout
-                              << "info"
-                              << " depth "    << it->first->depth
-                              << " seldepth " << it->first->depth
-                              << " multipv 1"
-                              << " score "    << UCI::value(it->first->value)
-                              << " nodes "    << expCount
-                              << " nps 0"
-                              << " tbhits 0"
-                              << " time 0"
-                              << " pv " << UCI::move(it->first->move, rootPos.is_chess960())
+                        // Provide some info to the GUI about available experience moves
+                        int expCount = 0;
+                        for (auto it = quality.rbegin(); it != quality.rend(); ++it)
+                        {
+                            ++expCount;
+                            sync_cout
+                              << "info "
+                              << " depth " << (Depth) it->first->depth << " seldepth "
+                              << (Depth) it->first->depth << " multipv 1"
+                              << " score " << UCI::value(it->first->value) << " nodes " << expCount
+                              << " nps " << expCount << " tbhits " << expCount << " time 0"
+                              << " pv " << UCI::move((Move) it->first->move, rootPos.is_chess960())
                               << sync_endl;
-                      }
+                        }
 
-                      //Apply 'Best Move'
-                      if ((bool)Options["Experience Book Best Move"] == false && quality.size() > 1)
-                      {
-                          static PRNG rng(now());
+                        // Calculate the selected width
+                        int selectedWidth =
+                          std::min(experienceBookWidth, static_cast<int>(quality.size()));
 
-                          //Pick one move of the top 50%
-                          bookMove = quality[rng.rand<uint32_t>() % std::max<uint32_t>(quality.size() / 2, 2)].first->move;
-                      }
-                      else
-                      {
-                          bookMove = quality.front().first->move;
-                      }
-                  }
-              }
-          }
+                        // Apply 'Best Move'
+                        if (experienceBookWidth > 1)
+                        {
+                            static PRNG rng(now());
 
-          if (bookMove != MOVE_NONE && std::find(rootMoves.begin(), rootMoves.end(), bookMove) != rootMoves.end())
-          {
-              think = false;
+                            // Randomly pick one move from the top 'width' moves
+                            bookMove =
+                              (Move) quality[rng.rand<uint32_t>() % selectedWidth].first->move;
+                        }
+                        else
+                        {
+                            bookMove = (Move) quality.front().first->move;
+                        }
+                    }
+                }
+            }
 
-              for (Thread* th : Threads)
+            if (bookMove != MOVE_NONE
+                && std::find(rootMoves.begin(), rootMoves.end(), bookMove) != rootMoves.end())
+            {
+                think = false;
+
+                for (Thread* th : Threads)
                   std::swap(th->rootMoves[0], *std::find(th->rootMoves.begin(), th->rootMoves.end(), bookMove));
           }
       }
@@ -474,16 +489,6 @@ void Thread::search() {
 
     multiPV = std::min(multiPV, rootMoves.size());
 
-    // Compute the eval shift based on the rating advantage.
-    // This really just shifts the relative value of guaranteed draws.
-    int ratingAdv = int(Options["Adjust Rating Advantage"]);
-    if (ratingAdv)
-    {
-        // 2 * log(10) * wdl_model b
-        const int prefactor  = 2 * 2.302585 * 60;
-        this->advantage[us]  = Value(prefactor * ratingAdv / 400);
-        this->advantage[~us] = -this->advantage[us];
-    }
 
     int searchAgainCounter = 0;
 
@@ -1806,6 +1811,21 @@ Value qsearch(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth) {
                 else
                     break;  // Fail high
             }
+        }
+    }
+
+    if (variety)
+    {
+        const auto normalizedVariety = variety * UCI::NormalizeToPawnValue / 100;
+
+        if (bestValue + normalizedVariety >= 0 && pos.game_ply() / 2 < Options["Variety Max Moves"])
+        {
+            // Range for variety bonus
+            const auto varietyMinRange = thisThread->nodes / 2;
+            const auto varietyMaxRange = thisThread->nodes * 2;
+            // Distribution for variety bonus
+            std::uniform_int_distribution<int> distribution(varietyMinRange, varietyMaxRange);
+            bestValue += distribution(get_random_generator()) % (variety + 1);
         }
     }
 
