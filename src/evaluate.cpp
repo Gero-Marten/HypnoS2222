@@ -188,7 +188,7 @@ Value Eval::evaluate(const Position& pos) {
     int   shuffling  = pos.rule50_count();
     int   simpleEval = simple_eval(pos, stm);
 
-    bool lazy = abs(simpleEval) > 2700;
+    bool lazy = abs(simpleEval) > 2550;
     if (lazy)
         v = Value(simpleEval);
     else

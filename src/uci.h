@@ -98,7 +98,6 @@ extern UCI::OptionsMap Options;
 //no uci options, but constants
 enum {
     NODES_TIME = 0,
-	MOVE_OVERHEAD = 1000};
 //end no uci options, but constants
 }  // namespace Stockfish
 
