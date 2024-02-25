@@ -1913,9 +1913,13 @@ bool Position::see_ge(Move m, Value threshold) const {
     return bool(res);
 }
 
-// Tests whether the position is drawn by 50-move rule
-// or by repetition. It does not detect stalemates.
+// Tests whether the position is drawn by 50-move rule, repetition
+// or insufficient material. It does not detect stalemates.
 bool Position::is_draw(int ply) const {
+
+    // Insufficient material
+    if (count<ALL_PIECES>() <= 3 && !pieces(PAWN, ROOK, QUEEN))
+        return true;
 
     if (st->rule50 > 99 && (!checkers() || MoveList<LEGAL>(*this).size()))
         return true;
