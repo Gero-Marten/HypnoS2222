@@ -1362,10 +1362,13 @@ moves_loop:  // When in check, search starts here
             else if (PvNode && move == ttMove && to_sq(move) == prevSq
                      && captureHistory[movedPiece][to_sq(move)][type_of(pos.piece_on(to_sq(move)))]
                           > 4146)
-                extension = 1;
-        }
+              extension = 1;
 
-        // Add extension to new depth
+          else if ((ss-1)->currentMove == MOVE_NULL && abs(ss->staticEval - (ss-1)->staticEval) > 900)
+              extension = 1;
+      }
+
+      // Add extension to new depth
         newDepth += extension;
         ss->doubleExtensions = (ss - 1)->doubleExtensions + (extension == 2);
 
