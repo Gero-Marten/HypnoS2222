@@ -142,7 +142,7 @@ struct Skill {
     Move pick_best(size_t multiPV);
 
     double level;
-    Move   best = Move::none();
+    Move   best = MOVE_NONE;
 };
 
 int variety;

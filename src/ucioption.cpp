@@ -85,6 +85,7 @@ void init(OptionsMap& o) {
     o["Skill Level"]                         << Option(20, 0, 20);
     o["Move Overhead"]                       << Option(10, 0, 5000);
     o["Minimum Thinking Time"]               << Option(100, 0, 5000);
+	o["nodestime"]                           << Option(0, 0, 10000);
     o["UCI_Chess960"]                        << Option(false);
     o["UCI_LimitStrength"]                   << Option(false);
     o["UCI_Elo"]                             << Option(1320, 1320, 3190);

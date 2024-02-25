@@ -95,10 +95,7 @@ Move        to_move(const Position& pos, std::string& str);
 }  // namespace UCI
 
 extern UCI::OptionsMap Options;
-//no uci options, but constants
-enum {
-    NODES_TIME = 0,
-//end no uci options, but constants
+
 }  // namespace Stockfish
 
 #endif  // #ifndef UCI_H_INCLUDED
