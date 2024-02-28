@@ -111,7 +111,8 @@ void init(OptionsMap& o) {
     o["Experience Book Min Depth"]           << Option(27, EXP_MIN_DEPTH, 64);
     o["Experience Book Max Moves"]           << Option(100, 1, 100);
     o["EvalFile"]                            << Option(EvalFileDefaultNameBig, on_eval_file);
-    o["EvalFileSmall"]                       << Option(EvalFileDefaultNameSmall, on_eval_file);
+    // Enable this after fishtest workers support EvalFileSmall
+    // o["EvalFileSmall"]                    << Option(EvalFileDefaultNameSmall, on_eval_file);
     o["Variety"]                             << Option(0, 0, 40);
     o["Variety Max Moves"]                   << Option(0, 0, 255);
     o["Materialistic Evaluation Strategy"]   << Option(0, -12, 12, on_materialistic_evaluation_strategy);

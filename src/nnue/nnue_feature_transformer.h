@@ -196,7 +196,8 @@ static constexpr int BestRegisterCount() {
 
 
 // Input feature converter
-template<IndexType TransformedFeatureDimensions, Accumulator<TransformedFeatureDimensions> StateInfo::*accPtr>
+template<IndexType                                 TransformedFeatureDimensions,
+         Accumulator<TransformedFeatureDimensions> StateInfo::*accPtr>
 class FeatureTransformer {
 
    private:
@@ -370,14 +371,14 @@ class FeatureTransformer {
 
         // The size must be enough to contain the largest possible update.
         // That might depend on the feature set and generally relies on the
-        // feature set's update cost calculation to be correct and never
-        // allow updates with more added/removed features than MaxActiveDimensions.
+        // feature set's update cost calculation to be correct and never allow
+        // updates with more added/removed features than MaxActiveDimensions.
         FeatureSet::IndexList removed[N - 1], added[N - 1];
 
         {
             int i =
               N
-              - 2;  // last potential state to update. Skip last element because it must be nullptr.
+              - 2;  // Last potential state to update. Skip last element because it must be nullptr.
             while (states_to_update[i] == nullptr)
                 --i;
 
@@ -432,8 +433,8 @@ class FeatureTransformer {
                                            vec_add_16(columnR0[k], columnR1[k]));
             }
 
-            auto accPsqtIn = reinterpret_cast<const psqt_vec_t*>(
-              &(st->*accPtr).psqtAccumulation[Perspective][0]);
+            auto accPsqtIn =
+              reinterpret_cast<const psqt_vec_t*>(&(st->*accPtr).psqtAccumulation[Perspective][0]);
             auto accPsqtOut = reinterpret_cast<psqt_vec_t*>(
               &(states_to_update[0]->*accPtr).psqtAccumulation[Perspective][0]);
 
@@ -529,8 +530,8 @@ class FeatureTransformer {
 
                     // Store accumulator
                     auto accTilePsqtOut = reinterpret_cast<psqt_vec_t*>(
-                      &(states_to_update[i]
-                          ->*accPtr).psqtAccumulation[Perspective][j * PsqtTileHeight]);
+                      &(states_to_update[i]->*accPtr)
+                         .psqtAccumulation[Perspective][j * PsqtTileHeight]);
                     for (std::size_t k = 0; k < NumPsqtRegs; ++k)
                         vec_store_psqt(&accTilePsqtOut[k], psqt[k]);
                 }
@@ -540,8 +541,7 @@ class FeatureTransformer {
         for (IndexType i = 0; states_to_update[i]; ++i)
         {
             std::memcpy((states_to_update[i]->*accPtr).accumulation[Perspective],
-                        (st->*accPtr).accumulation[Perspective],
-                        HalfDimensions * sizeof(BiasType));
+                        (st->*accPtr).accumulation[Perspective], HalfDimensions * sizeof(BiasType));
 
             for (std::size_t k = 0; k < PSQTBuckets; ++k)
                 (states_to_update[i]->*accPtr).psqtAccumulation[Perspective][k] =
