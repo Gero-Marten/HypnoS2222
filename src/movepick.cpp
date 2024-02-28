@@ -40,9 +40,8 @@ enum Stages {
     GOOD_CAPTURE,
     REFUTATION,
     QUIET_INIT,
-    GOOD_QUIET,
+    QUIET,
     BAD_CAPTURE,
-    BAD_QUIET,
 
     // generate evasion moves
     EVASION_TT,
@@ -247,8 +246,6 @@ Move MovePicker::select(Pred filter) {
 // moves left, picking the move with the highest score from a list of generated moves.
 Move MovePicker::next_move(bool skipQuiets) {
 
-    auto quiet_threshold = [](Depth d) { return -3330 * d; };
-
 top:
     switch (stage)
     {
@@ -302,35 +299,21 @@ top:
         if (!skipQuiets)
         {
             cur      = endBadCaptures;
-            endMoves = beginBadQuiets = endBadQuiets = generate<QUIETS>(pos, cur);
+            endMoves = generate<QUIETS>(pos, cur);
 
             score<QUIETS>();
-            partial_insertion_sort(cur, endMoves, quiet_threshold(depth));
+            partial_insertion_sort(cur, endMoves, -3330 * depth);
         }
 
         ++stage;
         [[fallthrough]];
 
-    case GOOD_QUIET :
+    case QUIET :
         if (!skipQuiets && select<Next>([&]() {
                 return *cur != refutations[0].move && *cur != refutations[1].move
                     && *cur != refutations[2].move;
             }))
-        {
-            Move tmp = *(cur - 1);
-            if ((cur - 1)->value < -7500 && (cur - 1)->value > quiet_threshold(depth))
-            {
-                // Remaining quiets are bad
-                beginBadQuiets = cur;
-
-                // Prepare the pointers to loop over the bad captures
-                cur      = moves;
-                endMoves = endBadCaptures;
-
-                ++stage;
-            }
-            return tmp;
-        }
+            return *(cur - 1);
 
         // Prepare the pointers to loop over the bad captures
         cur      = moves;
@@ -340,23 +323,7 @@ top:
         [[fallthrough]];
 
     case BAD_CAPTURE :
-        if (select<Next>([]() { return true; }))
-            return *(cur - 1);
-
-        // Prepare the pointers to loop over the bad quiets
-        cur      = beginBadQuiets;
-        endMoves = endBadQuiets;
-
-        ++stage;
-        [[fallthrough]];
-
-    case BAD_QUIET :
-        if (!skipQuiets)
-            return select<Next>([&]() {
-                return *cur != refutations[0] && *cur != refutations[1] && *cur != refutations[2];
-            });
-
-        return Move::none();
+        return select<Next>([]() { return true; });
 
     case EVASION_INIT :
         cur      = moves;
