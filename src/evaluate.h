@@ -23,6 +23,7 @@
 #define EVALUATE_H_INCLUDED
 
 #include <string>
+#include <unordered_map>
 
 #include "types.h"
 
@@ -37,8 +38,6 @@ std::string trace(Position& pos);
 int   simple_eval(const Position& pos, Color c);
 Value evaluate(const Position& pos);
 
-extern std::string currentEvalFileName[2];
-
 // The default net name MUST follow the format nn-[SHA256 first 12 digits].nnue
 // for the build process (profile-build and fishtest) to work. Do not change the
 // name of the macro, as it is used in the Makefile.
@@ -49,10 +48,20 @@ namespace NNUE {
 
 extern int MaterialisticEvaluationStrategy;
 extern int PositionalEvaluationStrategy;
+enum NetSize : int;
+
 void init();
 void verify();
 
 }  // namespace NNUE
+
+struct EvalFile {
+    std::string option_name;
+    std::string default_name;
+    std::string selected_name;
+};
+
+extern std::unordered_map<NNUE::NetSize, EvalFile> EvalFiles;
 
 }  // namespace Eval
 
