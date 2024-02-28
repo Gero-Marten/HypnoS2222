@@ -23,6 +23,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <cstdlib>
 #include <fstream>
 #include <initializer_list>
@@ -82,6 +83,7 @@ void NNUE::init() {
 
     for (NetSize netSize : {Big, Small})
     {
+        // change after fishtest supports EvalFileSmall
         std::string eval_file =
           std::string(netSize == Small ? EvalFileDefaultNameSmall : Options[EvFiles[netSize]]);
         if (eval_file.empty())
@@ -137,6 +139,7 @@ void NNUE::verify() {
 
     for (NetSize netSize : {Big, Small})
     {
+        // change after fishtest supports EvalFileSmall
         std::string eval_file =
           std::string(netSize == Small ? EvalFileDefaultNameSmall : Options[EvFiles[netSize]]);
         if (eval_file.empty())
@@ -188,12 +191,12 @@ Value Eval::evaluate(const Position& pos) {
     int   shuffling  = pos.rule50_count();
     int   simpleEval = simple_eval(pos, stm);
 
-    bool lazy = abs(simpleEval) > 2550;
+    bool lazy = std::abs(simpleEval) > 2300;
     if (lazy)
         v = simpleEval;
     else
     {
-        bool smallNet = abs(simpleEval) > 1050;
+        bool smallNet = std::abs(simpleEval) > 1100;
 
         int nnueComplexity;
 
@@ -203,8 +206,8 @@ Value Eval::evaluate(const Position& pos) {
         int optimism = pos.this_thread()->optimism[stm];
 
         // Blend optimism and eval with nnue complexity and material imbalance
-        optimism += optimism * (nnueComplexity + abs(simpleEval - nnue)) / 512;
-        nnue -= nnue * (nnueComplexity + abs(simpleEval - nnue)) / 32768;
+        optimism += optimism * (nnueComplexity + std::abs(simpleEval - nnue)) / 512;
+        nnue -= nnue * (nnueComplexity + std::abs(simpleEval - nnue)) / 32768;
 
         int npm = pos.non_pawn_material() / 64;
         v       = (nnue * (915 + npm + 9 * pos.count<PAWN>()) + optimism * (154 + npm)) / 1024;
@@ -229,8 +232,8 @@ std::string Eval::trace(Position& pos) {
         return "Final evaluation: none (in check)";
 
     // Reset any global variable used in eval
-    pos.this_thread()->bestValue = VALUE_ZERO;
-    pos.this_thread()->rootSimpleEval = VALUE_ZERO;
+    pos.this_thread()->bestValue       = VALUE_ZERO;
+    pos.this_thread()->rootSimpleEval  = VALUE_ZERO;
     pos.this_thread()->optimism[WHITE] = VALUE_ZERO;
     pos.this_thread()->optimism[BLACK] = VALUE_ZERO;
 
