@@ -902,13 +902,6 @@ Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, boo
                     update_continuation_histories(ss - 1, pos.piece_on(prevSq), prevSq,
                                                   -stat_malus(depth + 1));
             }
-            // Penalty for a quiet ttMove that fails low (~1 Elo)
-            else if (!ttCapture)
-            {
-                int penalty = -stat_malus(depth);
-                thisThread->mainHistory[us][from_to(ttMove)] << penalty;
-                update_continuation_histories(ss, pos.moved_piece(ttMove), to_sq(ttMove), penalty);
-            }
         }
 
         // Partial workaround for the graph history interaction problem
