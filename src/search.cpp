@@ -797,7 +797,7 @@ Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, boo
     (ss + 1)->excludedMove = bestMove = MOVE_NONE;
     (ss + 2)->killers[0] = (ss + 2)->killers[1] = MOVE_NONE;
     (ss + 2)->cutoffCnt                         = 0;
-    ss->doubleExtensions                        = (ss - 1)->doubleExtensions;
+    ss->multipleExtensions                      = (ss - 1)->multipleExtensions;
     Square prevSq = is_ok((ss - 1)->currentMove) ? to_sq((ss - 1)->currentMove) : SQ_NONE;
     ss->statScore = 0;
 
@@ -1336,8 +1336,8 @@ moves_loop:  // When in check, search starts here
                 {
                     extension = 1;
 
-                    // Avoid search explosion by limiting the number of double extensions
-                    if (!PvNode && ss->doubleExtensions <= 16)
+                    // We make sure to limit the extensions in some way to avoid a search explosion
+                    if (!PvNode && ss->multipleExtensions <= 16)
                     {
                         extension = 2 + (value < singularBeta - 78 && !ttCapture);
                         depth += depth < 16;
@@ -1392,7 +1392,7 @@ moves_loop:  // When in check, search starts here
 
         // Add extension to new depth
         newDepth += extension;
-        ss->doubleExtensions = (ss - 1)->doubleExtensions + (extension >= 2);
+        ss->multipleExtensions = (ss - 1)->multipleExtensions + (extension >= 2);
 
         // Speculative prefetch as early as possible
         prefetch(TT.first_entry(pos.key_after(move)));
@@ -1443,7 +1443,7 @@ moves_loop:  // When in check, search starts here
                       + (*contHist[1])[movedPiece][to_sq(move)]
                       + (*contHist[3])[movedPiece][to_sq(move)] - 3817;
 
-        // Decrease/increase reduction for moves with a good/bad history (~25 Elo)
+        // Decrease/increase reduction for moves with a good/bad history (~8 Elo)
         r -= ss->statScore / 14894;
 
         // Step 17. Late moves reduction / extension (LMR, ~117 Elo)
@@ -1451,7 +1451,7 @@ moves_loop:  // When in check, search starts here
         {
             // In general we want to cap the LMR depth search at newDepth, but when
             // reduction is negative, we allow this move a limited search extension
-            // beyond the first move depth. This may lead to hidden double extensions.
+            // beyond the first move depth. This may lead to hidden multiple extensions.
             // To prevent problems when the max value is less than the min value,
             // std::clamp has been replaced by a more robust implementation.
             Depth d = std::max(1, std::min(newDepth - r, newDepth + 1));
@@ -1475,7 +1475,6 @@ moves_loop:  // When in check, search starts here
                 int bonus = value <= alpha ? -stat_malus(newDepth)
                           : value >= beta  ? stat_bonus(newDepth)
                                            : 0;
-
 
                 update_continuation_histories(ss, movedPiece, to_sq(move), bonus);
             }
@@ -1673,8 +1672,8 @@ Value qsearch(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth) {
     assert(PvNode || (alpha == beta - 1));
     assert(depth <= 0);
 
-    // Check if we have an upcoming move that draws by repetition, or
-    // if the opponent had an alternative move earlier to this position.
+    // Check if we have an upcoming move that draws by repetition, or if
+    // the opponent had an alternative move earlier to this position. (~1 Elo)
     if (alpha < VALUE_DRAW && pos.has_game_cycle(ss->ply))
     {
         alpha = value_draw(pos.this_thread());
@@ -1841,7 +1840,7 @@ Value qsearch(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth) {
                 }
 
                 // If static eval is much lower than alpha and move is not winning material
-                // we can prune this move.
+                // we can prune this move. (~2 Elo)
                 if (futilityBase <= alpha && !pos.see_ge(move, VALUE_ZERO + 1))
                 {
                     bestValue = std::max(bestValue, futilityBase);
