@@ -46,9 +46,10 @@ Value evaluate(const Position& pos);
 
 namespace NNUE {
 
+enum NetSize : int;
+
 extern int MaterialisticEvaluationStrategy;
 extern int PositionalEvaluationStrategy;
-enum NetSize : int;
 
 void init();
 void verify();
